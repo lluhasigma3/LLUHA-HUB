@@ -19,6 +19,7 @@ local C = _G.LLUHA.C or {
     Invis = false, AFling = true, Fling = false, FlingR = 15, Freeze = false,
     Ghost = false, AntiAFK = true, Godmode = false,
     TPK = false, BJ = true, Fullbright = false, NoFog = false, FPSBoost = false,
+    FOV = true, FOVSize = 200,
 }
 _G.LLUHA.C = C
 
@@ -125,6 +126,8 @@ LP.CharacterAdded:Connect(function()
     MyRole = "Innocent"
 end)
 
+LP:SetAttribute("LLUHA_User", true)
+
 local ESPo = {}
 
 local function MkESP(p)
@@ -191,7 +194,12 @@ local function UpESP(p)
     local col = RC[role] or RC.Innocent
     d.h.FillColor = col
     d.h.OutlineColor = col
-    d.nl.Text = C.ESPNames and p.Name or ""
+    
+    local nameText = C.ESPNames and p.Name or ""
+    if p:GetAttribute("LLUHA_User") then
+        nameText = "[LLUHA] " .. nameText
+    end
+    d.nl.Text = nameText
     d.rl.Text = C.ESPRoles and role or ""
     d.rl.TextColor3 = col
     local hum = ch:FindFirstChildOfClass("Humanoid")
@@ -353,11 +361,43 @@ RunService.Heartbeat:Connect(function()
     elseif hum.JumpPower ~= C.DefJump then hum.JumpPower = C.DefJump end
 end)
 
+-- FOV-круг
+local sg = _G.LLUHA.SG
+local fovCircle
+if sg then
+    fovCircle = Instance.new("Frame")
+    fovCircle.Size = UDim2.new(0, C.FOVSize, 0, C.FOVSize)
+    fovCircle.Position = UDim2.new(0.5, -C.FOVSize/2, 0.5, -C.FOVSize/2)
+    fovCircle.BackgroundTransparency = 1
+    fovCircle.BorderSizePixel = 0
+    fovCircle.Visible = false
+    fovCircle.ZIndex = 999
+    fovCircle.Parent = sg
+    local fovCorner = Instance.new("UICorner", fovCircle)
+    fovCorner.CornerRadius = UDim.new(1, 0)
+    local fovStroke = Instance.new("UIStroke", fovCircle)
+    fovStroke.Color = Color3.fromRGB(255, 50, 50)
+    fovStroke.Thickness = 1.5
+    fovStroke.Transparency = 0.3
+    _G.LLUHA.FOVCircle = fovCircle
+    _G.LLUHA.FOVStroke = fovStroke
+end
+
+-- Aimbot V3 + Резолвер
 task.spawn(function()
-    while task.wait(0.12) do
+    while task.wait(0.08) do
+        local fov = _G.LLUHA.FOVCircle
+        local fovS = _G.LLUHA.FOVStroke
         if C.AShoot then
+            if fov then
+                fov.Visible = true
+                if fovS then
+                    fovS.Color = MyRole == "Sheriff" and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(255, 50, 50)
+                end
+            end
+            
             local m = FindM()
-            if m then
+            if m and m.Character then
                 local mc = LP.Character
                 if mc then
                     local g = mc:FindFirstChildOfClass("Tool")
@@ -367,7 +407,9 @@ task.spawn(function()
                             Cam.CFrame = CFrame.new(Cam.CFrame.Position, th.Position)
                             pcall(function()
                                 for _, c in pairs(g:GetChildren()) do
-                                    if c:IsA("RemoteEvent") then c:FireServer(th.Position, th) end
+                                    if c:IsA("RemoteEvent") then 
+                                        c:FireServer(th.Position, th) 
+                                    end
                                 end
                                 g:Activate()
                             end)
@@ -375,6 +417,8 @@ task.spawn(function()
                     end
                 end
             end
+        else
+            if fov then fov.Visible = false end
         end
     end
 end)
@@ -589,7 +633,6 @@ UIS.JumpRequest:Connect(function()
     end
 end)
 
--- Fly (плавный, без лагов)
 local flyAttach, flyLV, flyAO, flyAlign
 local function StopFly()
     if flyLV then flyLV:Destroy(); flyLV = nil end
@@ -709,4 +752,5 @@ task.spawn(function()
     end
 end)
 
+_G.LLUHA.Loaded = true
 print("[LLUHA HUB] Core loaded ✅")
