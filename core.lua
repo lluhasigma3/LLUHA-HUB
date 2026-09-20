@@ -287,30 +287,35 @@ local function FindSpawn()
 end
 
 task.spawn(function()
-    while task.wait(1) do
+    while task.wait(1.5) do
         if C.Farm then
             local ch = LP.Character
+            local hum = ch and ch:FindFirstChildOfClass("Humanoid")
             local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
-            if hrp then
+            if hrp and hum then
                 for _, cn in pairs(GetCoins()) do
                     if cn.Parent and C.Farm then
                         if C.FarmSafe then
                             local _, d = FindM()
                             if d <= C.SafeRange then
-                                local sp = FindSpawn()
-                                if sp then
-                                    local save = hrp.CFrame
-                                    hrp.CFrame = CFrame.new(sp.Position + Vector3.new(0, 5, 0))
-                                    task.wait(0.3)
-                                    hrp.CFrame = save
-                                end
+                                task.wait(0.5)
+                                continue
                             end
                         end
-                        hrp.CFrame = CFrame.new(cn.Position + Vector3.new(0, 2, 0))
-                        task.wait(0.15)
+                        local target = cn.Position
+                        if (target - hrp.Position).Magnitude > 3 then
+                            hum:MoveTo(target)
+                            local timeout = 0
+                            while (target - hrp.Position).Magnitude > 3 and timeout < 50 do
+                                if not C.Farm then break end
+                                task.wait(0.1)
+                                timeout = timeout + 1
+                            end
+                        end
+                        task.wait(0.4)
                     end
                 end
-                task.wait(1)
+                task.wait(1.5)
             end
         end
     end
