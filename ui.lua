@@ -20,6 +20,56 @@ sg.ResetOnSpawn = false
 sg.Parent = CoreGui
 _G.LLUHA.SG = sg
 
+-- FOV-круг
+local fovCircle = Instance.new("Frame")
+fovCircle.Size = UDim2.new(0, C.FOVSize or 200, 0, C.FOVSize or 200)
+fovCircle.Position = UDim2.new(0.5, -(C.FOVSize or 200)/2, 0.5, -(C.FOVSize or 200)/2)
+fovCircle.BackgroundTransparency = 1
+fovCircle.BorderSizePixel = 0
+fovCircle.Visible = false
+fovCircle.ZIndex = 999
+fovCircle.Parent = sg
+
+local fovCorner = Instance.new("UICorner", fovCircle)
+fovCorner.CornerRadius = UDim.new(1, 0)
+
+local fovStroke = Instance.new("UIStroke", fovCircle)
+fovStroke.Color = Color3.fromRGB(255, 50, 50)
+fovStroke.Thickness = 1.5
+fovStroke.Transparency = 0.3
+
+_G.LLUHA.FOVCircle = fovCircle
+_G.LLUHA.FOVStroke = fovStroke
+
+task.spawn(function()
+    while task.wait(0.05) do
+        local fov = _G.LLUHA.FOVCircle
+        local fovS = _G.LLUHA.FOVStroke
+        if not fov then continue end
+        local myRole = _G.LLUHA.GetMyRole and _G.LLUHA.GetMyRole() or "Innocent"
+        local showFOV = false
+        if C.FOV then
+            if C.AShoot then showFOV = true
+            elseif myRole == "Murderer" or myRole == "Sheriff" then showFOV = true
+            else
+                local ch = LP.Character
+                if ch and ch:FindFirstChildOfClass("Tool") then showFOV = true end
+            end
+        end
+        if showFOV then
+            fov.Visible = true
+            if fovS then
+                if myRole == "Sheriff" then fovS.Color = Color3.fromRGB(0, 150, 255)
+                elseif myRole == "Murderer" then fovS.Color = Color3.fromRGB(255, 50, 50)
+                else fovS.Color = Color3.fromRGB(255, 200, 50) end
+            end
+        else
+            fov.Visible = false
+        end
+    end
+end)
+
+-- Кнопка открытия
 local openBtn = Instance.new("TextButton")
 openBtn.Size = UDim2.new(0, 110, 0, 38)
 openBtn.Position = UDim2.new(0, 20, 0.5, -19)
@@ -37,9 +87,10 @@ local os = Instance.new("UIStroke", openBtn)
 os.Color = Color3.fromRGB(220, 100, 255)
 os.Thickness = 2
 
+-- Главное окно
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 320, 0, 490)
-main.Position = UDim2.new(0.5, -160, 0.5, -245)
+main.Size = UDim2.new(0, 340, 0, 520)
+main.Position = UDim2.new(0.5, -170, 0.5, -260)
 main.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
 main.BorderSizePixel = 0
 main.Active = true
@@ -52,6 +103,7 @@ local ms = Instance.new("UIStroke", main)
 ms.Color = Color3.fromRGB(180, 0, 255)
 ms.Thickness = 2
 
+-- Заголовок
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 38)
 titleBar.BackgroundColor3 = Color3.fromRGB(180, 0, 255)
@@ -65,7 +117,7 @@ local tl = Instance.new("TextLabel")
 tl.Size = UDim2.new(1, -70, 1, 0)
 tl.Position = UDim2.new(0, 12, 0, 0)
 tl.BackgroundTransparency = 1
-tl.Text = "LLUHA HUB v12"
+tl.Text = "🔥 LLUHA HUB v12"
 tl.TextColor3 = Color3.new(1, 1, 1)
 tl.Font = Enum.Font.GothamBold
 tl.TextSize = 15
@@ -84,6 +136,7 @@ closeB.Parent = titleBar
 local cbc = Instance.new("UICorner", closeB)
 cbc.CornerRadius = UDim.new(0, 6)
 
+-- Инфо-панель
 local roleL = Instance.new("TextLabel")
 roleL.Size = UDim2.new(0.5, 0, 0, 16)
 roleL.Position = UDim2.new(0, 12, 0, 42)
@@ -129,6 +182,7 @@ task.spawn(function()
     end
 end)
 
+-- Вкладки
 local tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(1, -16, 0, 28)
 tabBar.Position = UDim2.new(0, 8, 0, 76)
@@ -152,7 +206,7 @@ scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 scroll.Parent = main
 
 local grid = Instance.new("UIGridLayout", scroll)
-grid.CellSize = UDim2.new(0, 145, 0, 30)
+grid.CellSize = UDim2.new(0, 150, 0, 30)
 grid.CellPadding = UDim2.new(0, 5, 0, 5)
 grid.SortOrder = Enum.SortOrder.LayoutOrder
 
@@ -196,7 +250,7 @@ local function Refresh()
         Toggle("ESPHealth", "HP")
         Toggle("ESPDist", "Дистанция")
         Toggle("ESPTracers", "Линии")
-        Toggle("AShoot", "Aimbot V3")
+        Toggle("AShoot", "Aimbot")
         Btn("FOV: " .. (C.FOV and "ВКЛ" or "ВЫКЛ"), function(b)
             C.FOV = not C.FOV
             b.Text = "FOV: " .. (C.FOV and "ВКЛ" or "ВЫКЛ")
@@ -312,7 +366,7 @@ local function Refresh()
             end)
         end)
         if AdminMode then
-            Btn("💊 Heal (HP)", function(b)
+            Btn("💊 Heal", function(b)
                 local h = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
                 if h then h.Health = h.MaxHealth end
             end)
@@ -326,41 +380,31 @@ local function Refresh()
             Btn("🌑 Fullbright OFF", function(b) C.Fullbright = false end)
             Btn("⚡ Speed 100", function(b) C.Speed = true; C.SpeedVal = 100 end)
             Btn("⚡ Speed 50", function(b) C.Speed = true; C.SpeedVal = 50 end)
-            Btn("🚶 Speed обычная", function(b) C.Speed = false end)
+            Btn("🚶 Speed Обычная", function(b) C.Speed = false end)
             Btn("🦘 Jump 200", function(b) C.Jump = true; C.JumpVal = 200 end)
             Btn("🦘 Jump 100", function(b) C.Jump = true; C.JumpVal = 100 end)
             Btn("✈ Fly Speed 150", function(b) C.FlySp = 150 end)
             Btn("✈ Fly Speed 300", function(b) C.FlySp = 300 end)
-            Btn("🛡 God Mode ON", function(b) C.Godmode = true end)
-            Btn("🛡 God Mode OFF", function(b) C.Godmode = false end)
-            Btn("👻 Invisible ON", function(b) C.Invis = true end)
-            Btn("👻 Invisible OFF", function(b) C.Invis = false end)
-            Btn("💥 Kill Aura ON", function(b) C.KAura = true end)
-            Btn("💥 Kill Aura OFF", function(b) C.KAura = false end)
-            Btn("🤖 Auto Kill ON", function(b) C.AKill = true end)
-            Btn("🤖 Auto Kill OFF", function(b) C.AKill = false end)
+            Btn("🛡 God ON", function(b) C.Godmode = true end)
+            Btn("🛡 God OFF", function(b) C.Godmode = false end)
+            Btn("👻 Invis ON", function(b) C.Invis = true end)
+            Btn("👻 Invis OFF", function(b) C.Invis = false end)
+            Btn("💥 KillAura ON", function(b) C.KAura = true end)
+            Btn("💥 KillAura OFF", function(b) C.KAura = false end)
+            Btn("🤖 AutoKill ON", function(b) C.AKill = true end)
+            Btn("🤖 AutoKill OFF", function(b) C.AKill = false end)
             Btn("🚀 Fly ON", function(b) C.Fly = true end)
             Btn("🚀 Fly OFF", function(b) C.Fly = false end)
             Btn("🎯 Aimbot ON", function(b) C.AShoot = true end)
             Btn("🎯 Aimbot OFF", function(b) C.AShoot = false end)
             Btn("📦 Farm ON", function(b) C.Farm = true end)
             Btn("📦 Farm OFF", function(b) C.Farm = false end)
-            Btn("📊 Показать мои координаты", function(b)
-                local ch = LP.Character
-                local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
-                if hrp then
-                    b.Text = string.format("%.0f, %.0f, %.0f", hrp.Position.X, hrp.Position.Y, hrp.Position.Z)
-                end
-            end)
-            Btn("👥 Игроков онлайн: " .. #Players:GetPlayers(), function(b)
+            Btn("👥 Игроков: " .. #Players:GetPlayers(), function(b)
                 b.Text = "👥 Игроков: " .. #Players:GetPlayers()
             end)
         else
             Btn("🔒 Заблокировано", function(b)
                 b.Text = "Введи пароль"
-            end)
-            Btn("🔒 Только для админа", function(b)
-                b.Text = "Нужен пароль"
             end)
             Btn("🔒 Функция скрыта", function(b)
                 b.Text = "🔒"
@@ -381,7 +425,7 @@ local tabBtns = {}
 
 for _, t in ipairs(tabNames) do
     local tb = Instance.new("TextButton")
-    tb.Size = UDim2.new(0, 56, 1, 0)
+    tb.Size = UDim2.new(0, 60, 1, 0)
     tb.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
     tb.Text = t.name
     tb.TextColor3 = Color3.new(1, 1, 1)
