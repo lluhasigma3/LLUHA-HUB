@@ -15,9 +15,10 @@ local ADMIN_PASS = "67lluhasigma"
 local AdminMode = false
 
 local sg = Instance.new("ScreenGui")
-sg.Name = "LLUHA_HUB_V10"
+sg.Name = "LLUHA_HUB_V11"
 sg.ResetOnSpawn = false
 sg.Parent = CoreGui
+_G.LLUHA.SG = sg
 
 local openBtn = Instance.new("TextButton")
 openBtn.Size = UDim2.new(0, 110, 0, 38)
@@ -37,8 +38,8 @@ os.Color = Color3.fromRGB(220, 100, 255)
 os.Thickness = 2
 
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 320, 0, 450)
-main.Position = UDim2.new(0.5, -160, 0.5, -225)
+main.Size = UDim2.new(0, 320, 0, 470)
+main.Position = UDim2.new(0.5, -160, 0.5, -235)
 main.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
 main.BorderSizePixel = 0
 main.Active = true
@@ -64,7 +65,7 @@ local tl = Instance.new("TextLabel")
 tl.Size = UDim2.new(1, -70, 1, 0)
 tl.Position = UDim2.new(0, 12, 0, 0)
 tl.BackgroundTransparency = 1
-tl.Text = "LLUHA HUB v10"
+tl.Text = "LLUHA HUB v11"
 tl.TextColor3 = Color3.new(1, 1, 1)
 tl.Font = Enum.Font.GothamBold
 tl.TextSize = 15
@@ -123,7 +124,7 @@ tabBar.Parent = main
 
 local tabLayout = Instance.new("UIListLayout", tabBar)
 tabLayout.FillDirection = Enum.FillDirection.Horizontal
-tabLayout.Padding = UDim.new(0, 4)
+tabLayout.Padding = UDim.new(0, 3)
 tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 local scroll = Instance.new("ScrollingFrame")
@@ -169,7 +170,6 @@ local function Toggle(key, label)
 end
 
 local currentTab = "combat"
-local tabs = {}
 
 local function Refresh()
     for _, v in pairs(scroll:GetChildren()) do
@@ -183,7 +183,12 @@ local function Refresh()
         Toggle("ESPHealth", "HP")
         Toggle("ESPDist", "Дистанция")
         Toggle("ESPTracers", "Линии")
-        Toggle("AShoot", "AutoShoot")
+        Toggle("AShoot", "Aimbot V3")
+        Btn("FOV Круг: " .. (C.FOV and "ВКЛ" or "ВЫКЛ"), function(b)
+            C.FOV = not C.FOV
+            b.Text = "FOV Круг: " .. (C.FOV and "ВКЛ" or "ВЫКЛ")
+            b.BackgroundColor3 = C.FOV and Color3.fromRGB(80, 30, 120) or Color3.fromRGB(35, 35, 48)
+        end)
         Toggle("AKill", "AutoKill")
         Toggle("KAura", "KillAura")
         Toggle("ADodge", "AutoDodge")
@@ -213,7 +218,6 @@ local function Refresh()
         Toggle("NoFog", "No Fog")
     elseif currentTab == "admin" then
         Btn("🔐 Ввести пароль", function(b)
-            local pass = ""
             local input = Instance.new("TextBox")
             input.Size = UDim2.new(0, 200, 0, 35)
             input.Position = UDim2.new(0.5, -100, 0.5, -17)
@@ -254,15 +258,14 @@ local function Refresh()
             Btn("Reset", function(b)
                 LP.Character:BreakJoints()
             end)
-            Btn("Fullbright ON", function(b)
-                C.Fullbright = true
-            end)
-            Btn("Fullbright OFF", function(b)
-                C.Fullbright = false
-            end)
-            Btn("Kick всех (нельзя)", function(b)
-                b.Text = "❌ Нельзя"
-            end)
+            Btn("Fullbright ON", function(b) C.Fullbright = true end)
+            Btn("Fullbright OFF", function(b) C.Fullbright = false end)
+            Btn("Speed 100", function(b) C.Speed = true; C.SpeedVal = 100 end)
+            Btn("Speed 50", function(b) C.Speed = true; C.SpeedVal = 50 end)
+            Btn("Speed обычная", function(b) C.Speed = false end)
+            Btn("Jump 200", function(b) C.Jump = true; C.JumpVal = 200 end)
+            Btn("Fly Speed 150", function(b) C.FlySp = 150 end)
+            Btn("Fly Speed 300", function(b) C.FlySp = 300 end)
         else
             Btn("🔒 Заблокировано", function(b)
                 b.Text = "Введи пароль"
@@ -276,14 +279,14 @@ local tabNames = {
     {id = "farm", name = "💰 Фарм"},
     {id = "move", name = "🏃 Движ"},
     {id = "player", name = "👤 Игрок"},
-    {id = "admin", name = "🔐 Админ"},
+    {id = "admin", name = "🔐 Адм"},
 }
 
 local tabBtns = {}
 
 for _, t in ipairs(tabNames) do
     local tb = Instance.new("TextButton")
-    tb.Size = UDim2.new(0, 58, 1, 0)
+    tb.Size = UDim2.new(0, 56, 1, 0)
     tb.BackgroundColor3 = Color3.fromRGB(35, 35, 48)
     tb.Text = t.name
     tb.TextColor3 = Color3.new(1, 1, 1)
