@@ -1,0 +1,673 @@
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local CoreGui = game:GetService("CoreGui")
+local Lighting = game:GetService("Lighting")
+local UIS = game:GetService("UserInputService")
+local VU = game:GetService("VirtualUser")
+
+local LP = Players.LocalPlayer
+local Cam = workspace.CurrentCamera
+
+_G.LLUHA = _G.LLUHA or {}
+local C = _G.LLUHA.C or {
+    ESP = true, ESPNames = true, ESPRoles = true, ESPHealth = true, ESPDist = false, ESPTracers = false,
+    Farm = false, FarmSafe = false, SafeRange = 20, AutoCollect = false, CoinMagnet = false,
+    Speed = false, SpeedVal = 22, DefSpeed = 16,
+    Jump = false, JumpVal = 50, DefJump = 50,
+    InfJ = false, Fly = false, FlySp = 60, NoClip = false, CTP = false,
+    AShoot = false, AKill = false, KAura = false, ADodge = false, DodgeR = 30,
+    Invis = false, AFling = true, Fling = false, FlingR = 15, Freeze = false,
+    Ghost = false, AntiAFK = true, Godmode = false,
+    TPK = false, BJ = true, Fullbright = false, NoFog = false, FPSBoost = false,
+}
+_G.LLUHA.C = C
+
+local RC = {
+    Murderer = Color3.fromRGB(255, 0, 0),
+    Sheriff = Color3.fromRGB(0, 100, 255),
+    Innocent = Color3.fromRGB(0, 255, 0),
+}
+_G.LLUHA.RC = RC
+
+local MyRole = "Innocent"
+local Cache = {}
+local WCache = {}
+local SpawnPoint = nil
+
+_G.LLUHA.GetCache = function() return Cache end
+_G.LLUHA.GetMyRole = function() return MyRole end
+
+local function Match(s)
+    if not s then return nil end
+    s = tostring(s):lower()
+    if s:find("murder") or s:find("убий") or s:find("killer") then return "Murderer" end
+    if s:find("sheriff") or s:find("шериф") or s:find("cop") then return "Sheriff" end
+    if s:find("innocent") or s:find("невин") then return "Innocent" end
+    return nil
+end
+
+local function ScanMe()
+    local ch = LP.Character
+    if not ch then return end
+    for _, a in ipairs({"Role","role","RoleName","Team"}) do
+        local ok, v = pcall(function() return LP:GetAttribute(a) end)
+        if ok and v then
+            local s = tostring(v):lower()
+            if s:find("murder") or s:find("убий") then MyRole = "Murderer"; return end
+            if s:find("sheriff") or s:find("шериф") then MyRole = "Sheriff"; return end
+        end
+    end
+    local k, g = false, false
+    for _, t in pairs(ch:GetChildren()) do
+        if t:IsA("Tool") then
+            local n = t.Name:lower()
+            if n:find("knife") or n:find("нож") or n:find("dagger") then k = true end
+            if n:find("gun") or n:find("пистолет") or n:find("revolver") then g = true end
+        end
+    end
+    if k then MyRole = "Murderer"
+    elseif g then MyRole = "Sheriff"
+    else MyRole = "Innocent" end
+end
+
+task.spawn(function() while task.wait(0.3) do ScanMe() end end)
+
+local function Scan(p)
+    if p == LP then return end
+    local fr = nil
+    for _, a in ipairs({"Role","role","RoleName","Team","Class"}) do
+        local ok, v = pcall(function() return p:GetAttribute(a) end)
+        if ok and v then local r = Match(v); if r then fr = r; break end end
+    end
+    for _, v in pairs(p:GetChildren()) do
+        if v:IsA("StringValue") or v:IsA("ObjectValue") or v:IsA("BoolValue") or v:IsA("IntValue") then
+            local r = Match(v.Name); if r then fr = r end
+            local ok, val = pcall(function() return v.Value end)
+            if ok and val then local r2 = Match(val); if r2 then fr = r2 end end
+        end
+    end
+    local ls = p:FindFirstChild("leaderstats")
+    if ls then
+        for _, v in pairs(ls:GetChildren()) do
+            local r = Match(v.Name); if r then fr = r end
+            local ok, val = pcall(function() return v.Value end)
+            if ok then local r2 = Match(val); if r2 then fr = r2 end end
+        end
+    end
+    for _, obj in pairs(p:GetDescendants()) do
+        local r = Match(obj.Name); if r then fr = r end
+    end
+    local ch = p.Character
+    if ch then
+        for _, t in pairs(ch:GetChildren()) do
+            if t:IsA("Tool") then
+                local n = t.Name:lower()
+                if n:find("knife") or n:find("нож") or n:find("dagger") then WCache[p] = "Murderer"
+                elseif n:find("gun") or n:find("пистолет") or n:find("revolver") then WCache[p] = "Sheriff" end
+            end
+        end
+    end
+    if fr then Cache[p] = fr
+    elseif WCache[p] then Cache[p] = WCache[p]
+    elseif not Cache[p] then Cache[p] = "Innocent" end
+end
+
+task.spawn(function()
+    while task.wait(0.15) do
+        for _, p in pairs(Players:GetPlayers()) do pcall(Scan, p) end
+    end
+end)
+
+LP.CharacterAdded:Connect(function()
+    task.wait(2)
+    for k in pairs(Cache) do Cache[k] = nil end
+    for k in pairs(WCache) do WCache[k] = nil end
+    MyRole = "Innocent"
+end)
+
+local ESPo = {}
+
+local function MkESP(p)
+    if p == LP or ESPo[p] then return end
+    local ch = p.Character
+    if not ch or not ch:FindFirstChild("HumanoidRootPart") then return end
+    local h = Instance.new("Highlight")
+    h.Adornee = ch
+    h.FillTransparency = 0.6
+    h.OutlineTransparency = 0
+    h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+    h.Parent = CoreGui
+    local bb = Instance.new("BillboardGui")
+    bb.Size = UDim2.new(0, 220, 0, 60)
+    bb.StudsOffset = Vector3.new(0, 3, 0)
+    bb.AlwaysOnTop = true
+    bb.Parent = CoreGui
+    local nl = Instance.new("TextLabel")
+    nl.Size = UDim2.new(1, 0, 0.33, 0)
+    nl.BackgroundTransparency = 1
+    nl.TextColor3 = Color3.new(1, 1, 1)
+    nl.TextStrokeTransparency = 0
+    nl.TextScaled = true
+    nl.Font = Enum.Font.GothamBold
+    nl.Parent = bb
+    local rl = Instance.new("TextLabel")
+    rl.Size = UDim2.new(1, 0, 0.33, 0)
+    rl.Position = UDim2.new(0, 0, 0.33, 0)
+    rl.BackgroundTransparency = 1
+    rl.TextStrokeTransparency = 0
+    rl.TextScaled = true
+    rl.Font = Enum.Font.GothamBold
+    rl.Parent = bb
+    local hl = Instance.new("TextLabel")
+    hl.Size = UDim2.new(1, 0, 0.33, 0)
+    hl.Position = UDim2.new(0, 0, 0.66, 0)
+    hl.BackgroundTransparency = 1
+    hl.TextColor3 = Color3.fromRGB(255, 200, 50)
+    hl.TextStrokeTransparency = 0
+    hl.TextScaled = true
+    hl.Font = Enum.Font.GothamBold
+    hl.Parent = bb
+    local tr = Instance.new("LineHandleAdornment")
+    tr.Adornee = ch:FindFirstChild("HumanoidRootPart")
+    tr.Length = 0
+    tr.Thickness = 2
+    tr.Transparency = 0.5
+    tr.Parent = CoreGui
+    ESPo[p] = {h=h, bb=bb, nl=nl, rl=rl, hl=hl, tr=tr}
+end
+
+local function UpESP(p)
+    local d = ESPo[p]
+    if not d then return end
+    local ch = p.Character
+    if not ch or not ch:FindFirstChild("HumanoidRootPart") then
+        d.bb.Adornee = nil
+        d.tr.Adornee = nil
+        return
+    end
+    d.h.Adornee = ch
+    d.bb.Adornee = ch:FindFirstChild("Head") or ch.HumanoidRootPart
+    local role = Cache[p] or "Innocent"
+    local col = RC[role] or RC.Innocent
+    d.h.FillColor = col
+    d.h.OutlineColor = col
+    d.nl.Text = C.ESPNames and p.Name or ""
+    d.rl.Text = C.ESPRoles and role or ""
+    d.rl.TextColor3 = col
+    local hum = ch:FindFirstChildOfClass("Humanoid")
+    if hum and C.ESPHealth then
+        d.hl.Text = string.format("%d HP", math.floor(hum.Health))
+    else d.hl.Text = "" end
+    if C.ESPDist then
+        local myCh = LP.Character
+        local myHRP = myCh and myCh:FindFirstChild("HumanoidRootPart")
+        if myHRP then
+            local dist = (ch.HumanoidRootPart.Position - myHRP.Position).Magnitude
+            d.hl.Text = d.hl.Text .. " | " .. math.floor(dist) .. "m"
+        end
+    end
+    if C.ESPTracers then
+        d.tr.Visible = true
+        d.tr.Adornee = ch:FindFirstChild("HumanoidRootPart")
+        d.tr.Color3 = col
+        d.tr.Length = (Cam.CFrame.Position - ch.HumanoidRootPart.Position).Magnitude * 0.15
+        local mid = (Cam.CFrame.Position + ch.HumanoidRootPart.Position) / 2
+        d.tr.CFrame = CFrame.lookAt(mid, ch.HumanoidRootPart.Position)
+    else d.tr.Visible = false end
+end
+
+local function RmESP(p)
+    local d = ESPo[p]
+    if d then d.h:Destroy(); d.bb:Destroy(); d.tr:Destroy(); ESPo[p] = nil end
+    Cache[p] = nil
+    WCache[p] = nil
+end
+
+for _, p in pairs(Players:GetPlayers()) do
+    MkESP(p)
+    p.CharacterAdded:Connect(function() task.wait(0.5) MkESP(p) end)
+end
+Players.PlayerAdded:Connect(function(p)
+    p.CharacterAdded:Connect(function() task.wait(0.5) MkESP(p) end)
+end)
+Players.PlayerRemoving:Connect(RmESP)
+
+RunService.RenderStepped:Connect(function()
+    for p, d in pairs(ESPo) do
+        d.h.Enabled = C.ESP
+        d.bb.Enabled = C.ESP
+        if C.ESP then UpESP(p) end
+    end
+end)
+
+local function GetCoins()
+    local c = {}
+    local myCh = LP.Character
+    local myHRP = myCh and myCh:FindFirstChild("HumanoidRootPart")
+    if not myHRP then return c end
+    for _, o in pairs(workspace:GetDescendants()) do
+        if o:IsA("BasePart") then
+            local n = o.Name:lower()
+            if n:find("coin") or n:find("монет") or n:find("money") or n == "cash" then
+                if (o.Position - myHRP.Position).Magnitude <= 60 then
+                    table.insert(c, o)
+                end
+            end
+        end
+    end
+    return c
+end
+
+local function FindM()
+    local cl, ds = nil, math.huge
+    local mc = LP.Character
+    if not mc or not mc:FindFirstChild("HumanoidRootPart") then return nil, math.huge end
+    local mp = mc.HumanoidRootPart.Position
+    for _, p in pairs(Players:GetPlayers()) do
+        if p ~= LP and Cache[p] == "Murderer" then
+            local ch = p.Character
+            local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local d = (hrp.Position - mp).Magnitude
+                if d < ds then cl, ds = p, d end
+            end
+        end
+    end
+    return cl, ds
+end
+
+_G.LLUHA.FindM = FindM
+
+local function FindSpawn()
+    if SpawnPoint then return SpawnPoint end
+    for _, o in pairs(workspace:GetDescendants()) do
+        if o:IsA("SpawnLocation") then SpawnPoint = o; return o end
+    end
+    return nil
+end
+
+task.spawn(function()
+    while task.wait(1) do
+        if C.Farm then
+            local ch = LP.Character
+            local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                for _, cn in pairs(GetCoins()) do
+                    if cn.Parent and C.Farm then
+                        if C.FarmSafe then
+                            local _, d = FindM()
+                            if d <= C.SafeRange then
+                                local sp = FindSpawn()
+                                if sp then
+                                    local save = hrp.CFrame
+                                    hrp.CFrame = CFrame.new(sp.Position + Vector3.new(0, 5, 0))
+                                    task.wait(0.3)
+                                    hrp.CFrame = save
+                                end
+                            end
+                        end
+                        hrp.CFrame = CFrame.new(cn.Position + Vector3.new(0, 2, 0))
+                        task.wait(0.15)
+                    end
+                end
+                task.wait(1)
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if C.CoinMagnet then
+            local myCh = LP.Character
+            local myHRP = myCh and myCh:FindFirstChild("HumanoidRootPart")
+            if myHRP then
+                for _, o in pairs(workspace:GetDescendants()) do
+                    if o:IsA("BasePart") then
+                        local n = o.Name:lower()
+                        if n:find("coin") or n:find("монет") then
+                            if (o.Position - myHRP.Position).Magnitude < 100 then
+                                o.CFrame = CFrame.new(o.Position:Lerp(myHRP.Position, 0.3))
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+RunService.Heartbeat:Connect(function()
+    local ch = LP.Character
+    if not ch then return end
+    local hum = ch:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    if C.Speed then hum.WalkSpeed = C.SpeedVal
+    elseif hum.WalkSpeed ~= C.DefSpeed then hum.WalkSpeed = C.DefSpeed end
+    if C.Jump then hum.JumpPower = C.JumpVal
+    elseif hum.JumpPower ~= C.DefJump then hum.JumpPower = C.DefJump end
+end)
+
+task.spawn(function()
+    while task.wait(0.12) do
+        if C.AShoot then
+            local m = FindM()
+            if m then
+                local mc = LP.Character
+                if mc then
+                    local g = mc:FindFirstChildOfClass("Tool")
+                    if g then
+                        local th = m.Character:FindFirstChild("HumanoidRootPart")
+                        if th then
+                            Cam.CFrame = CFrame.new(Cam.CFrame.Position, th.Position)
+                            pcall(function()
+                                for _, c in pairs(g:GetChildren()) do
+                                    if c:IsA("RemoteEvent") then c:FireServer(th.Position, th) end
+                                end
+                                g:Activate()
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if C.ADodge then
+            local mc = LP.Character
+            local mh = mc and mc:FindFirstChild("HumanoidRootPart")
+            if mh then
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LP and Cache[p] == "Murderer" then
+                        local th = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+                        if th then
+                            local df = mh.Position - th.Position
+                            if df.Magnitude < C.DodgeR then
+                                local dr = df.Unit
+                                mh.Velocity = Vector3.new(dr.X * 65, mh.Velocity.Y, dr.Z * 65)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.15) do
+        if C.AKill and MyRole == "Murderer" then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LP and Cache[p] == "Sheriff" then
+                    local th = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+                    local mh = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+                    if th and mh and (th.Position - mh.Position).Magnitude <= 10 then
+                        mh.CFrame = th.CFrame * CFrame.new(0, 0, 2)
+                        local k = LP.Character:FindFirstChildOfClass("Tool")
+                        if k then
+                            pcall(function()
+                                for _, c in pairs(k:GetChildren()) do
+                                    if c:IsA("RemoteEvent") then c:FireServer(p.Character) end
+                                end
+                                k:Activate()
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.2) do
+        if C.KAura and MyRole == "Murderer" then
+            local mc = LP.Character
+            local mh = mc and mc:FindFirstChild("HumanoidRootPart")
+            if mh then
+                local k = mc:FindFirstChildOfClass("Tool")
+                if k then
+                    for _, p in pairs(Players:GetPlayers()) do
+                        if p ~= LP and Cache[p] ~= "Murderer" then
+                            local th = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+                            if th and (th.Position - mh.Position).Magnitude <= 12 then
+                                pcall(function()
+                                    for _, c in pairs(k:GetChildren()) do
+                                        if c:IsA("RemoteEvent") then c:FireServer(p.Character) end
+                                    end
+                                    k:Activate()
+                                end)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if C.Fling then
+            local mc = LP.Character
+            local mh = mc and mc:FindFirstChild("HumanoidRootPart")
+            if mh then
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LP and p.Character then
+                        local th = p.Character:FindFirstChild("HumanoidRootPart")
+                        if th and (th.Position - mh.Position).Magnitude <= C.FlingR then
+                            pcall(function()
+                                th.Velocity = Vector3.new(math.random(-1,1)*250, math.random(-1,1)*250, math.random(-1,1)*250)
+                                th.RotVelocity = Vector3.new(math.random(-100,100), math.random(-100,100), math.random(-100,100))
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.15) do
+        if C.Freeze then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LP and p.Character then
+                    local th = p.Character:FindFirstChild("HumanoidRootPart")
+                    if th then th.Anchored = true end
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.5) do
+        local ch = LP.Character
+        if ch then
+            for _, pt in pairs(ch:GetDescendants()) do
+                if pt:IsA("BasePart") and pt.Name ~= "HumanoidRootPart" then
+                    pt.LocalTransparencyModifier = C.Invis and 1 or 0
+                elseif pt:IsA("Decal") then
+                    pt.Transparency = C.Invis and 1 or 0
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.3) do
+        if C.Ghost then
+            local ch = LP.Character
+            local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+            if hrp then hrp.Transparency = 1 end
+            for _, pt in pairs(ch:GetDescendants()) do
+                if pt:IsA("BasePart") then pt.CanCollide = false end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.3) do
+        if C.Godmode then
+            local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hum.MaxHealth = math.huge; hum.Health = math.huge end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.3) do
+        if not C.AFling then continue end
+        local ch = LP.Character
+        local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+        if hrp and hrp.Velocity.Magnitude > 150 then
+            hrp.Velocity = Vector3.new(0, hrp.Velocity.Y, 0)
+            hrp.RotVelocity = Vector3.new(0, 0, 0)
+        end
+    end
+end)
+
+if C.AntiAFK then
+    LP.Idled:Connect(function()
+        VU:CaptureController()
+        VU:ClickButton2(Vector2.new())
+    end)
+end
+
+UIS.InputBegan:Connect(function(i, g)
+    if g then return end
+    if C.TPK and i.KeyCode == Enum.KeyCode.G then
+        local m = FindM()
+        if m and m.Character then
+            local th = m.Character:FindFirstChild("HumanoidRootPart")
+            local mh = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+            if th and mh then mh.CFrame = th.CFrame * CFrame.new(0, 0, 3) end
+        end
+    end
+end)
+
+local function HB()
+    local ch = LP.Character
+    if not ch then return false end
+    for _, t in pairs(ch:GetChildren()) do
+        if t:IsA("Tool") then
+            local n = t.Name:lower()
+            if n:find("bomb") or n:find("бомб") or n:find("prank") then return true end
+        end
+    end
+    return false
+end
+
+UIS.JumpRequest:Connect(function()
+    if C.BJ and HB() then
+        local ch = LP.Character
+        if ch then
+            local hum = ch:FindFirstChildOfClass("Humanoid")
+            if hum and hum:GetState() == Enum.HumanoidStateType.Freefall then
+                local b = ch:FindFirstChildOfClass("Tool")
+                if b then b:Activate(); task.wait(0.05); hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+            end
+        end
+    end
+end)
+
+UIS.JumpRequest:Connect(function()
+    if C.InfJ then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+    end
+end)
+
+local flyG, flyV
+local function StopFly()
+    if flyG then flyG:Destroy(); flyG = nil end
+    if flyV then flyV:Destroy(); flyV = nil end
+end
+
+task.spawn(function()
+    while task.wait(0.1) do
+        local ch = LP.Character
+        local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+        if not hrp then StopFly(); continue end
+        if C.Fly then
+            if not flyV then
+                flyV = Instance.new("BodyVelocity")
+                flyV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+                flyV.Velocity = Vector3.zero
+                flyV.Parent = hrp
+            end
+            if not flyG then
+                flyG = Instance.new("BodyGyro")
+                flyG.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+                flyG.P = 1000
+                flyG.Parent = hrp
+            end
+            local md = Vector3.zero
+            local cf = Cam.CFrame
+            if UIS:IsKeyDown(Enum.KeyCode.W) then md = md + cf.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then md = md - cf.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then md = md - cf.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then md = md + cf.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then md = md + Vector3.new(0, 1, 0) end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then md = md - Vector3.new(0, 1, 0) end
+            flyV.Velocity = md.Magnitude > 0 and md.Unit * C.FlySp or Vector3.zero
+            flyG.CFrame = cf
+        else StopFly() end
+    end
+end)
+
+local function DoTP(ray)
+    local ch = LP.Character
+    local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local pr = RaycastParams.new()
+    pr.FilterType = Enum.RaycastFilterType.Exclude
+    pr.FilterDescendantsInstances = {ch}
+    local rs = workspace:Raycast(ray.Origin, ray.Direction * 1000, pr)
+    if rs then hrp.CFrame = CFrame.new(rs.Position + Vector3.new(0, 3, 0))
+    else hrp.CFrame = CFrame.new(ray.Origin + ray.Direction * 100 + Vector3.new(0, 3, 0)) end
+end
+
+UIS.InputBegan:Connect(function(i, g)
+    if g then return end
+    if not C.CTP then return end
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then
+        local ml = UIS:GetMouseLocation()
+        DoTP(Cam:ViewportPointToRay(ml.X, ml.Y))
+    elseif i.UserInputType == Enum.UserInputType.Touch then
+        DoTP(Cam:ViewportPointToRay(i.Position.X, i.Position.Y))
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    if C.NoClip then
+        local ch = LP.Character
+        if ch then
+            for _, p in pairs(ch:GetDescendants()) do
+                if p:IsA("BasePart") then p.CanCollide = false end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.5) do
+        if C.Fullbright then
+            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            Lighting.Brightness = 3
+            Lighting.OutdoorAmbient = Color3.fromRGB(200, 200, 200)
+        end
+        if C.NoFog then
+            Lighting.FogEnd = 100000
+            Lighting.FogStart = 100000
+        end
+    end
+end)
+
+print("[LLUHA HUB] Core loaded ✅")
