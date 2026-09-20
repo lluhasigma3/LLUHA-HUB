@@ -69,10 +69,77 @@ task.spawn(function()
     end
 end)
 
--- Кнопка открытия
+-- ============ БЫСТРЫЕ КНОПКИ ============
+local quickBar = Instance.new("Frame")
+quickBar.Size = UDim2.new(0, 60, 0, 420)
+quickBar.Position = UDim2.new(0, 20, 0.5, -210)
+quickBar.BackgroundColor3 = Color3.fromRGB(20, 20, 28)
+quickBar.BackgroundTransparency = 0.15
+quickBar.BorderSizePixel = 0
+quickBar.Active = true
+quickBar.Draggable = true
+quickBar.Parent = sg
+local qbc = Instance.new("UICorner", quickBar)
+qbc.CornerRadius = UDim.new(0, 10)
+local qbs = Instance.new("UIStroke", quickBar)
+qbs.Color = Color3.fromRGB(180, 0, 255)
+qbs.Thickness = 1.5
+
+local quickLayout = Instance.new("UIListLayout", quickBar)
+quickLayout.Padding = UDim.new(0, 4)
+quickLayout.SortOrder = Enum.SortOrder.LayoutOrder
+quickLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
+
+local qpad = Instance.new("UIPadding", quickBar)
+qpad.PaddingTop = UDim.new(0, 6)
+
+local function QBtn(text, key, color)
+    local b = Instance.new("TextButton")
+    b.Size = UDim2.new(0, 50, 0, 28)
+    b.BackgroundColor3 = C[key] and color or Color3.fromRGB(35, 35, 48)
+    b.Text = text
+    b.TextColor3 = Color3.new(1, 1, 1)
+    b.Font = Enum.Font.GothamBold
+    b.TextSize = 10
+    b.Parent = quickBar
+    local c = Instance.new("UICorner", b)
+    c.CornerRadius = UDim.new(0, 6)
+    b.MouseButton1Click:Connect(function()
+        C[key] = not C[key]
+        b.BackgroundColor3 = C[key] and color or Color3.fromRGB(35, 35, 48)
+    end)
+    return b
+end
+
+QBtn("ESP", "ESP", Color3.fromRGB(50, 100, 50))
+QBtn("AIM", "AShoot", Color3.fromRGB(150, 30, 30))
+QBtn("FOV", "FOV", Color3.fromRGB(100, 50, 150))
+QBtn("FLY", "Fly", Color3.fromRGB(30, 80, 150))
+QBtn("SPD", "Speed", Color3.fromRGB(150, 120, 30))
+QBtn("FARM", "Farm", Color3.fromRGB(150, 90, 30))
+QBtn("KNIF", "AutoKnife", Color3.fromRGB(200, 50, 50))
+QBtn("FLNG", "AutoFling", Color3.fromRGB(180, 30, 80))
+QBtn("KILL", "AKill", Color3.fromRGB(180, 30, 30))
+QBtn("AURA", "KAura", Color3.fromRGB(150, 30, 150))
+QBtn("NOCL", "NoClip", Color3.fromRGB(60, 60, 60))
+QBtn("INVS", "Invis", Color3.fromRGB(80, 80, 120))
+QBtn("TPK", "TPK", Color3.fromRGB(120, 30, 120))
+
+local menuBtn = Instance.new("TextButton")
+menuBtn.Size = UDim2.new(0, 50, 0, 28)
+menuBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 255)
+menuBtn.Text = "MENU"
+menuBtn.TextColor3 = Color3.new(1, 1, 1)
+menuBtn.Font = Enum.Font.GothamBold
+menuBtn.TextSize = 10
+menuBtn.Parent = quickBar
+local mbc = Instance.new("UICorner", menuBtn)
+mbc.CornerRadius = UDim.new(0, 6)
+
+-- Кнопка открытия меню (старая)
 local openBtn = Instance.new("TextButton")
 openBtn.Size = UDim2.new(0, 110, 0, 38)
-openBtn.Position = UDim2.new(0, 20, 0.5, -19)
+openBtn.Position = UDim2.new(0, 90, 0.5, -19)
 openBtn.BackgroundColor3 = Color3.fromRGB(180, 0, 255)
 openBtn.Text = "🔥 LLUHA HUB"
 openBtn.TextColor3 = Color3.new(1, 1, 1)
@@ -103,7 +170,6 @@ local ms = Instance.new("UIStroke", main)
 ms.Color = Color3.fromRGB(180, 0, 255)
 ms.Thickness = 2
 
--- Заголовок
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 38)
 titleBar.BackgroundColor3 = Color3.fromRGB(180, 0, 255)
@@ -136,7 +202,6 @@ closeB.Parent = titleBar
 local cbc = Instance.new("UICorner", closeB)
 cbc.CornerRadius = UDim.new(0, 6)
 
--- Инфо-панель
 local roleL = Instance.new("TextLabel")
 roleL.Size = UDim2.new(0.5, 0, 0, 16)
 roleL.Position = UDim2.new(0, 12, 0, 42)
@@ -182,7 +247,6 @@ task.spawn(function()
     end
 end)
 
--- Вкладки
 local tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(1, -16, 0, 28)
 tabBar.Position = UDim2.new(0, 8, 0, 76)
@@ -270,6 +334,16 @@ local function Refresh()
         end)
         Toggle("AKill", "AutoKill")
         Toggle("KAura", "KillAura")
+        Toggle("AutoKnife", "AutoKnife")
+        Btn("Knife Range: " .. (C.AutoKnifeRange or 15), function(b)
+            local vals = {10, 15, 20, 30, 50}
+            local idx = 1
+            for i, v in ipairs(vals) do if v == C.AutoKnifeRange then idx = i; break end end
+            idx = idx % #vals + 1
+            C.AutoKnifeRange = vals[idx]
+            b.Text = "Knife Range: " .. C.AutoKnifeRange
+        end)
+        Toggle("AutoFling", "AutoFling")
         Toggle("ADodge", "AutoDodge")
         Toggle("Fling", "Fling")
         Toggle("Freeze", "Freeze")
@@ -391,6 +465,8 @@ local function Refresh()
             Btn("👻 Invis OFF", function(b) C.Invis = false end)
             Btn("💥 KillAura ON", function(b) C.KAura = true end)
             Btn("💥 KillAura OFF", function(b) C.KAura = false end)
+            Btn("🔪 AutoKnife ON", function(b) C.AutoKnife = true end)
+            Btn("🔪 AutoKnife OFF", function(b) C.AutoKnife = false end)
             Btn("🤖 AutoKill ON", function(b) C.AKill = true end)
             Btn("🤖 AutoKill OFF", function(b) C.AKill = false end)
             Btn("🚀 Fly ON", function(b) C.Fly = true end)
@@ -456,6 +532,11 @@ end)
 closeB.MouseButton1Click:Connect(function()
     main.Visible = false
     openBtn.Visible = true
+end)
+
+menuBtn.MouseButton1Click:Connect(function()
+    main.Visible = not main.Visible
+    openBtn.Visible = false
 end)
 
 print("[LLUHA HUB] UI loaded ✅")
