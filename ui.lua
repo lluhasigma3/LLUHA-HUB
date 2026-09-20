@@ -15,7 +15,7 @@ local ADMIN_PASS = "67lluhasigma"
 local AdminMode = false
 
 local sg = Instance.new("ScreenGui")
-sg.Name = "LLUHA_HUB_V11"
+sg.Name = "LLUHA_HUB_V12"
 sg.ResetOnSpawn = false
 sg.Parent = CoreGui
 _G.LLUHA.SG = sg
@@ -38,8 +38,8 @@ os.Color = Color3.fromRGB(220, 100, 255)
 os.Thickness = 2
 
 local main = Instance.new("Frame")
-main.Size = UDim2.new(0, 320, 0, 470)
-main.Position = UDim2.new(0.5, -160, 0.5, -235)
+main.Size = UDim2.new(0, 320, 0, 490)
+main.Position = UDim2.new(0.5, -160, 0.5, -245)
 main.BackgroundColor3 = Color3.fromRGB(15, 15, 22)
 main.BorderSizePixel = 0
 main.Active = true
@@ -65,7 +65,7 @@ local tl = Instance.new("TextLabel")
 tl.Size = UDim2.new(1, -70, 1, 0)
 tl.Position = UDim2.new(0, 12, 0, 0)
 tl.BackgroundTransparency = 1
-tl.Text = "LLUHA HUB v11"
+tl.Text = "LLUHA HUB v12"
 tl.TextColor3 = Color3.new(1, 1, 1)
 tl.Font = Enum.Font.GothamBold
 tl.TextSize = 15
@@ -85,7 +85,7 @@ local cbc = Instance.new("UICorner", closeB)
 cbc.CornerRadius = UDim.new(0, 6)
 
 local roleL = Instance.new("TextLabel")
-roleL.Size = UDim2.new(0.5, 0, 0, 18)
+roleL.Size = UDim2.new(0.5, 0, 0, 16)
 roleL.Position = UDim2.new(0, 12, 0, 42)
 roleL.BackgroundTransparency = 1
 roleL.Text = "Роль: Innocent"
@@ -96,7 +96,7 @@ roleL.TextXAlignment = Enum.TextXAlignment.Left
 roleL.Parent = main
 
 local adminL = Instance.new("TextLabel")
-adminL.Size = UDim2.new(0.5, -12, 0, 18)
+adminL.Size = UDim2.new(0.5, -12, 0, 16)
 adminL.Position = UDim2.new(0.5, 0, 0, 42)
 adminL.BackgroundTransparency = 1
 adminL.Text = "Админ: ВЫКЛ"
@@ -106,6 +106,17 @@ adminL.TextSize = 11
 adminL.TextXAlignment = Enum.TextXAlignment.Right
 adminL.Parent = main
 
+local timerL = Instance.new("TextLabel")
+timerL.Size = UDim2.new(1, -24, 0, 14)
+timerL.Position = UDim2.new(0, 12, 0, 57)
+timerL.BackgroundTransparency = 1
+timerL.Text = "⏱ 00:00"
+timerL.TextColor3 = Color3.fromRGB(255, 200, 50)
+timerL.Font = Enum.Font.GothamBold
+timerL.TextSize = 11
+timerL.TextXAlignment = Enum.TextXAlignment.Left
+timerL.Parent = main
+
 task.spawn(function()
     while task.wait(0.4) do
         local r = _G.LLUHA and _G.LLUHA.GetMyRole and _G.LLUHA.GetMyRole() or "Innocent"
@@ -113,12 +124,14 @@ task.spawn(function()
         roleL.TextColor3 = RC[r] or Color3.fromRGB(255, 255, 255)
         adminL.Text = AdminMode and "Админ: ВКЛ" or "Админ: ВЫКЛ"
         adminL.TextColor3 = AdminMode and Color3.fromRGB(100, 255, 100) or Color3.fromRGB(255, 100, 100)
+        local t = _G.LLUHA.RoundTime or 0
+        timerL.Text = string.format("⏱ %02d:%02d  |  FOV: %d", math.floor(t/60), t%60, C.FOVSize or 200)
     end
 end)
 
 local tabBar = Instance.new("Frame")
 tabBar.Size = UDim2.new(1, -16, 0, 28)
-tabBar.Position = UDim2.new(0, 8, 0, 64)
+tabBar.Position = UDim2.new(0, 8, 0, 76)
 tabBar.BackgroundTransparency = 1
 tabBar.Parent = main
 
@@ -128,8 +141,8 @@ tabLayout.Padding = UDim.new(0, 3)
 tabLayout.SortOrder = Enum.SortOrder.LayoutOrder
 
 local scroll = Instance.new("ScrollingFrame")
-scroll.Size = UDim2.new(1, -16, 1, -105)
-scroll.Position = UDim2.new(0, 8, 0, 96)
+scroll.Size = UDim2.new(1, -16, 1, -115)
+scroll.Position = UDim2.new(0, 8, 0, 108)
 scroll.BackgroundTransparency = 1
 scroll.BorderSizePixel = 0
 scroll.ScrollBarThickness = 5
@@ -175,7 +188,7 @@ local function Refresh()
     for _, v in pairs(scroll:GetChildren()) do
         if v:IsA("TextButton") then v:Destroy() end
     end
-    
+
     if currentTab == "combat" then
         Toggle("ESP", "ESP")
         Toggle("ESPNames", "Имена")
@@ -184,10 +197,22 @@ local function Refresh()
         Toggle("ESPDist", "Дистанция")
         Toggle("ESPTracers", "Линии")
         Toggle("AShoot", "Aimbot V3")
-        Btn("FOV Круг: " .. (C.FOV and "ВКЛ" or "ВЫКЛ"), function(b)
+        Btn("FOV: " .. (C.FOV and "ВКЛ" or "ВЫКЛ"), function(b)
             C.FOV = not C.FOV
-            b.Text = "FOV Круг: " .. (C.FOV and "ВКЛ" or "ВЫКЛ")
+            b.Text = "FOV: " .. (C.FOV and "ВКЛ" or "ВЫКЛ")
             b.BackgroundColor3 = C.FOV and Color3.fromRGB(80, 30, 120) or Color3.fromRGB(35, 35, 48)
+        end)
+        Btn("FOV Размер: " .. (C.FOVSize or 200), function(b)
+            local sizes = {100, 150, 200, 250, 300, 400}
+            local idx = 1
+            for i, s in ipairs(sizes) do if s == C.FOVSize then idx = i; break end end
+            idx = idx % #sizes + 1
+            C.FOVSize = sizes[idx]
+            b.Text = "FOV Размер: " .. C.FOVSize
+            if _G.LLUHA.FOVCircle then
+                _G.LLUHA.FOVCircle.Size = UDim2.new(0, C.FOVSize, 0, C.FOVSize)
+                _G.LLUHA.FOVCircle.Position = UDim2.new(0.5, -C.FOVSize/2, 0.5, -C.FOVSize/2)
+            end
         end)
         Toggle("AKill", "AutoKill")
         Toggle("KAura", "KillAura")
@@ -197,13 +222,46 @@ local function Refresh()
     elseif currentTab == "farm" then
         Toggle("Farm", "Farm Coins")
         Toggle("FarmSafe", "Farm Safe")
+        Toggle("AutoRespawn", "Авто-респавн")
         Toggle("AutoCollect", "Auto Collect")
         Toggle("CoinMagnet", "Coin Magnet")
+        Btn("Скорость: " .. string.format("%.1f", C.FarmSpeed or 1.5), function(b)
+            local speeds = {0.5, 1, 1.5, 2, 3, 5}
+            local idx = 1
+            for i, s in ipairs(speeds) do if math.abs(s - C.FarmSpeed) < 0.1 then idx = i; break end end
+            idx = idx % #speeds + 1
+            C.FarmSpeed = speeds[idx]
+            b.Text = "Скорость: " .. string.format("%.1f", C.FarmSpeed)
+        end)
+        Btn("Сумка: " .. (C.FullBag or 50), function(b)
+            local vals = {30, 50, 100, 200}
+            local idx = 1
+            for i, v in ipairs(vals) do if v == C.FullBag then idx = i; break end end
+            idx = idx % #vals + 1
+            C.FullBag = vals[idx]
+            b.Text = "Сумка: " .. C.FullBag
+        end)
     elseif currentTab == "move" then
         Toggle("Speed", "SpeedHack")
+        Btn("Speed Значение: " .. (C.SpeedVal or 22), function(b)
+            local vals = {22, 30, 40, 50, 75, 100}
+            local idx = 1
+            for i, v in ipairs(vals) do if v == C.SpeedVal then idx = i; break end end
+            idx = idx % #vals + 1
+            C.SpeedVal = vals[idx]
+            b.Text = "Speed Значение: " .. C.SpeedVal
+        end)
         Toggle("Jump", "HighJump")
         Toggle("InfJ", "InfiniteJump")
         Toggle("Fly", "Fly")
+        Btn("Fly Speed: " .. (C.FlySp or 60), function(b)
+            local vals = {30, 60, 100, 150, 250, 400}
+            local idx = 1
+            for i, v in ipairs(vals) do if v == C.FlySp then idx = i; break end end
+            idx = idx % #vals + 1
+            C.FlySp = vals[idx]
+            b.Text = "Fly Speed: " .. C.FlySp
+        end)
         Toggle("NoClip", "Noclip")
         Toggle("CTP", "ClickTP")
         Toggle("BJ", "BombJump")
@@ -216,6 +274,12 @@ local function Refresh()
         Toggle("AntiAFK", "AntiAFK")
         Toggle("Fullbright", "Fullbright")
         Toggle("NoFog", "No Fog")
+        Toggle("FPSBoost", "FPS Boost")
+        Toggle("CustomSound", "Свой звук")
+        Btn("Громкость: " .. (C.SoundVolume or 3), function(b)
+            C.SoundVolume = (C.SoundVolume or 3) % 10 + 1
+            b.Text = "Громкость: " .. C.SoundVolume
+        end)
     elseif currentTab == "admin" then
         Btn("🔐 Ввести пароль", function(b)
             local input = Instance.new("TextBox")
@@ -248,27 +312,58 @@ local function Refresh()
             end)
         end)
         if AdminMode then
-            Btn("Heal (HP)", function(b)
+            Btn("💊 Heal (HP)", function(b)
                 local h = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
                 if h then h.Health = h.MaxHealth end
             end)
-            Btn("Rejoin", function(b)
+            Btn("🔄 Rejoin", function(b)
                 game:GetService("TeleportService"):Teleport(game.PlaceId, LP)
             end)
-            Btn("Reset", function(b)
+            Btn("☠ Reset", function(b)
                 LP.Character:BreakJoints()
             end)
-            Btn("Fullbright ON", function(b) C.Fullbright = true end)
-            Btn("Fullbright OFF", function(b) C.Fullbright = false end)
-            Btn("Speed 100", function(b) C.Speed = true; C.SpeedVal = 100 end)
-            Btn("Speed 50", function(b) C.Speed = true; C.SpeedVal = 50 end)
-            Btn("Speed обычная", function(b) C.Speed = false end)
-            Btn("Jump 200", function(b) C.Jump = true; C.JumpVal = 200 end)
-            Btn("Fly Speed 150", function(b) C.FlySp = 150 end)
-            Btn("Fly Speed 300", function(b) C.FlySp = 300 end)
+            Btn("💡 Fullbright ON", function(b) C.Fullbright = true end)
+            Btn("🌑 Fullbright OFF", function(b) C.Fullbright = false end)
+            Btn("⚡ Speed 100", function(b) C.Speed = true; C.SpeedVal = 100 end)
+            Btn("⚡ Speed 50", function(b) C.Speed = true; C.SpeedVal = 50 end)
+            Btn("🚶 Speed обычная", function(b) C.Speed = false end)
+            Btn("🦘 Jump 200", function(b) C.Jump = true; C.JumpVal = 200 end)
+            Btn("🦘 Jump 100", function(b) C.Jump = true; C.JumpVal = 100 end)
+            Btn("✈ Fly Speed 150", function(b) C.FlySp = 150 end)
+            Btn("✈ Fly Speed 300", function(b) C.FlySp = 300 end)
+            Btn("🛡 God Mode ON", function(b) C.Godmode = true end)
+            Btn("🛡 God Mode OFF", function(b) C.Godmode = false end)
+            Btn("👻 Invisible ON", function(b) C.Invis = true end)
+            Btn("👻 Invisible OFF", function(b) C.Invis = false end)
+            Btn("💥 Kill Aura ON", function(b) C.KAura = true end)
+            Btn("💥 Kill Aura OFF", function(b) C.KAura = false end)
+            Btn("🤖 Auto Kill ON", function(b) C.AKill = true end)
+            Btn("🤖 Auto Kill OFF", function(b) C.AKill = false end)
+            Btn("🚀 Fly ON", function(b) C.Fly = true end)
+            Btn("🚀 Fly OFF", function(b) C.Fly = false end)
+            Btn("🎯 Aimbot ON", function(b) C.AShoot = true end)
+            Btn("🎯 Aimbot OFF", function(b) C.AShoot = false end)
+            Btn("📦 Farm ON", function(b) C.Farm = true end)
+            Btn("📦 Farm OFF", function(b) C.Farm = false end)
+            Btn("📊 Показать мои координаты", function(b)
+                local ch = LP.Character
+                local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+                if hrp then
+                    b.Text = string.format("%.0f, %.0f, %.0f", hrp.Position.X, hrp.Position.Y, hrp.Position.Z)
+                end
+            end)
+            Btn("👥 Игроков онлайн: " .. #Players:GetPlayers(), function(b)
+                b.Text = "👥 Игроков: " .. #Players:GetPlayers()
+            end)
         else
             Btn("🔒 Заблокировано", function(b)
                 b.Text = "Введи пароль"
+            end)
+            Btn("🔒 Только для админа", function(b)
+                b.Text = "Нужен пароль"
+            end)
+            Btn("🔒 Функция скрыта", function(b)
+                b.Text = "🔒"
             end)
         end
     end
@@ -278,7 +373,7 @@ local tabNames = {
     {id = "combat", name = "⚔ Бой"},
     {id = "farm", name = "💰 Фарм"},
     {id = "move", name = "🏃 Движ"},
-    {id = "player", name = "👤 Игрок"},
+    {id = "player", name = "👤 Я"},
     {id = "admin", name = "🔐 Адм"},
 }
 
