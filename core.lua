@@ -523,6 +523,301 @@ end)
 
 task.spawn(function()
     while task.wait(0.15) do
-        if C.A
-                _G.LLUHA.Loaded = true
+        if C.AKill and MyRole == "Murderer" then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LP and Cache[p] == "Sheriff" then
+                    local th = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+                    local mh = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+                    if th and mh and (th.Position - mh.Position).Magnitude <= 10 then
+                        mh.CFrame = th.CFrame * CFrame.new(0, 0, 2)
+                        local k = LP.Character:FindFirstChildOfClass("Tool")
+                        if k then
+                            pcall(function()
+                                for _, c in pairs(k:GetChildren()) do
+                                    if c:IsA("RemoteEvent") then c:FireServer(p.Character) end
+                                end
+                                k:Activate()
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.2) do
+        if C.KAura and MyRole == "Murderer" then
+            local mc = LP.Character
+            local mh = mc and mc:FindFirstChild("HumanoidRootPart")
+            if mh then
+                local k = mc:FindFirstChildOfClass("Tool")
+                if k then
+                    for _, p in pairs(Players:GetPlayers()) do
+                        if p ~= LP and Cache[p] ~= "Murderer" then
+                            local th = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
+                            if th and (th.Position - mh.Position).Magnitude <= 12 then
+                                pcall(function()
+                                    for _, c in pairs(k:GetChildren()) do
+                                        if c:IsA("RemoteEvent") then c:FireServer(p.Character) end
+                                    end
+                                    k:Activate()
+                                end)
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.1) do
+        if C.Fling then
+            local mc = LP.Character
+            local mh = mc and mc:FindFirstChild("HumanoidRootPart")
+            if mh then
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LP and p.Character then
+                        local th = p.Character:FindFirstChild("HumanoidRootPart")
+                        if th and (th.Position - mh.Position).Magnitude <= C.FlingR then
+                            pcall(function()
+                                th.Velocity = Vector3.new(math.random(-1,1)*250, math.random(-1,1)*250, math.random(-1,1)*250)
+                                th.RotVelocity = Vector3.new(math.random(-100,100), math.random(-100,100), math.random(-100,100))
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.15) do
+        if C.Freeze then
+            for _, p in pairs(Players:GetPlayers()) do
+                if p ~= LP and p.Character then
+                    local th = p.Character:FindFirstChild("HumanoidRootPart")
+                    if th then th.Anchored = true end
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.5) do
+        local ch = LP.Character
+        if ch then
+            for _, pt in pairs(ch:GetDescendants()) do
+                if pt:IsA("BasePart") and pt.Name ~= "HumanoidRootPart" then
+                    pt.LocalTransparencyModifier = C.Invis and 1 or 0
+                elseif pt:IsA("Decal") then
+                    pt.Transparency = C.Invis and 1 or 0
+                end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.3) do
+        if C.Ghost then
+            local ch = LP.Character
+            local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+            if hrp then hrp.Transparency = 1 end
+            for _, pt in pairs(ch:GetDescendants()) do
+                if pt:IsA("BasePart") then pt.CanCollide = false end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.3) do
+        if C.Godmode then
+            local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+            if hum then hum.MaxHealth = math.huge; hum.Health = math.huge end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.3) do
+        if not C.AFling then continue end
+        local ch = LP.Character
+        local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+        if hrp and hrp.Velocity.Magnitude > 150 then
+            hrp.Velocity = Vector3.new(0, hrp.Velocity.Y, 0)
+            hrp.RotVelocity = Vector3.new(0, 0, 0)
+        end
+    end
+end)
+
+if C.AntiAFK then
+    LP.Idled:Connect(function()
+        VU:CaptureController()
+        VU:ClickButton2(Vector2.new())
+    end)
+end
+
+UIS.InputBegan:Connect(function(i, g)
+    if g then return end
+    if C.TPK and i.KeyCode == Enum.KeyCode.G then
+        local m = FindM()
+        if m and m.Character then
+            local th = m.Character:FindFirstChild("HumanoidRootPart")
+            local mh = LP.Character and LP.Character:FindFirstChild("HumanoidRootPart")
+            if th and mh then mh.CFrame = th.CFrame * CFrame.new(0, 0, 3) end
+        end
+    end
+end)
+
+local function HB()
+    local ch = LP.Character
+    if not ch then return false end
+    for _, t in pairs(ch:GetChildren()) do
+        if t:IsA("Tool") then
+            local n = t.Name:lower()
+            if n:find("bomb") or n:find("бомб") or n:find("prank") then return true end
+        end
+    end
+    return false
+end
+
+UIS.JumpRequest:Connect(function()
+    if C.BJ and HB() then
+        local ch = LP.Character
+        if ch then
+            local hum = ch:FindFirstChildOfClass("Humanoid")
+            if hum and hum:GetState() == Enum.HumanoidStateType.Freefall then
+                local b = ch:FindFirstChildOfClass("Tool")
+                if b then b:Activate(); task.wait(0.05); hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+            end
+        end
+    end
+end)
+
+UIS.JumpRequest:Connect(function()
+    if C.InfJ then
+        local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+        if hum then hum:ChangeState(Enum.HumanoidStateType.Jumping) end
+    end
+end)
+
+local flyAttach, flyLV, flyAO, flyAlign
+local function StopFly()
+    if flyLV then flyLV:Destroy(); flyLV = nil end
+    if flyAO then flyAO:Destroy(); flyAO = nil end
+    if flyAttach then flyAttach:Destroy(); flyAttach = nil end
+    if flyAlign then flyAlign:Destroy(); flyAlign = nil end
+end
+
+local function StartFly(hrp)
+    if flyLV then return end
+    flyAttach = Instance.new("Attachment")
+    flyAttach.Parent = hrp
+
+    flyAlign = Instance.new("AlignOrientation")
+    flyAlign.Mode = Enum.OrientationAlignmentMode.OneAttachment
+    flyAlign.Attachment0 = flyAttach
+    flyAlign.MaxTorque = 9e9
+    flyAlign.Responsiveness = 200
+    flyAlign.Parent = hrp
+
+    flyLV = Instance.new("LinearVelocity")
+    flyLV.Attachment0 = flyAttach
+    flyLV.MaxForce = 9e9
+    flyLV.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+    flyLV.PrimaryTangentAxis = Enum.Vector3.X
+    flyLV.SecondaryTangentAxis = Enum.Vector3.Y
+    flyLV.Parent = hrp
+
+    flyAO = Instance.new("AlignOrientation")
+    flyAO.Mode = Enum.OrientationAlignmentMode.OneAttachment
+    flyAO.Attachment0 = flyAttach
+    flyAO.MaxTorque = 9e9
+    flyAO.Responsiveness = 200
+    flyAO.Parent = hrp
+end
+
+task.spawn(function()
+    while task.wait(0.05) do
+        local ch = LP.Character
+        local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+        if not hrp then StopFly(); continue end
+
+        if C.Fly then
+            local hum = ch:FindFirstChildOfClass("Humanoid")
+            if hum then
+                hum.PlatformStand = false
+                pcall(function() hum:ChangeState(Enum.HumanoidStateType.Physics) end)
+            end
+
+            StartFly(hrp)
+
+            local md = Vector3.zero
+            local cf = Cam.CFrame
+            if UIS:IsKeyDown(Enum.KeyCode.W) then md = md + cf.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.S) then md = md - cf.LookVector end
+            if UIS:IsKeyDown(Enum.KeyCode.A) then md = md - cf.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.D) then md = md + cf.RightVector end
+            if UIS:IsKeyDown(Enum.KeyCode.Space) then md = md + Vector3.new(0, 1, 0) end
+            if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then md = md - Vector3.new(0, 1, 0) end
+
+            if flyLV then
+                flyLV.VectorVelocity = md.Magnitude > 0 and md.Unit * C.FlySp or Vector3.zero
+            end
+            if flyAlign then
+                flyAlign.CFrame = cf
+            end
+        else
+            StopFly()
+        end
+    end
+end)
+
+local function DoTP(ray)
+    local ch = LP.Character
+    local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    local pr = RaycastParams.new()
+    pr.FilterType = Enum.RaycastFilterType.Exclude
+    pr.FilterDescendantsInstances = {ch}
+    local rs = workspace:Raycast(ray.Origin, ray.Direction * 1000, pr)
+    if rs then hrp.CFrame = CFrame.new(rs.Position + Vector3.new(0, 3, 0))
+    else hrp.CFrame = CFrame.new(ray.Origin + ray.Direction * 100 + Vector3.new(0, 3, 0)) end
+end
+
+UIS.InputBegan:Connect(function(i, g)
+    if g then return end
+    if not C.CTP then return end
+    if i.UserInputType == Enum.UserInputType.MouseButton1 then
+        local ml = UIS:GetMouseLocation()
+        DoTP(Cam:ViewportPointToRay(ml.X, ml.Y))
+    elseif i.UserInputType == Enum.UserInputType.Touch then
+        DoTP(Cam:ViewportPointToRay(i.Position.X, i.Position.Y))
+    end
+end)
+
+RunService.Stepped:Connect(function()
+    if C.NoClip then
+        local ch = LP.Character
+        if ch then
+            for _, p in pairs(ch:GetDescendants()) do
+                if p:IsA("BasePart") then p.CanCollide = false end
+            end
+        end
+    end
+end)
+
+task.spawn(function()
+    while task.wait(0.5) do
+        if C.Fullbright then
+            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+            Lighting.Brightness = 3
+            _G.LLUHA.Loaded = true
 print("[LLUHA HUB] Core loaded ✅")
