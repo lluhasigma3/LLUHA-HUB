@@ -203,7 +203,6 @@ local function UpESP(p)
     local col = RC[role] or RC.Innocent
     d.h.FillColor = col
     d.h.OutlineColor = col
-    
     local nameText = C.ESPNames and p.Name or ""
     if p:GetAttribute("LLUHA_User") then
         nameText = "[LLUHA] " .. nameText
@@ -337,7 +336,6 @@ task.spawn(function()
     end
 end)
 
--- Авто-респавн
 task.spawn(function()
     while task.wait(2) do
         if C.AutoRespawn then
@@ -391,63 +389,9 @@ RunService.Heartbeat:Connect(function()
     elseif hum.JumpPower ~= C.DefJump then hum.JumpPower = C.DefJump end
 end)
 
--- FOV-круг
-local sg = _G.LLUHA.SG
-local fovCircle
-if sg then
-    fovCircle = Instance.new("Frame")
-    fovCircle.Size = UDim2.new(0, C.FOVSize, 0, C.FOVSize)
-    fovCircle.Position = UDim2.new(0.5, -C.FOVSize/2, 0.5, -C.FOVSize/2)
-    fovCircle.BackgroundTransparency = 1
-    fovCircle.BorderSizePixel = 0
-    fovCircle.Visible = false
-    fovCircle.ZIndex = 999
-    fovCircle.Parent = sg
-    local fovCorner = Instance.new("UICorner", fovCircle)
-    fovCorner.CornerRadius = UDim.new(1, 0)
-    local fovStroke = Instance.new("UIStroke", fovCircle)
-    fovStroke.Color = Color3.fromRGB(255, 50, 50)
-    fovStroke.Thickness = 1.5
-    fovStroke.Transparency = 0.3
-    _G.LLUHA.FOVCircle = fovCircle
-    _G.LLUHA.FOVStroke = fovStroke
-end
-
--- Aimbot V3 + FOV
+-- Aimbot V3 + стрельба
 task.spawn(function()
     while task.wait(0.08) do
-        local fov = _G.LLUHA.FOVCircle
-        local fovS = _G.LLUHA.FOVStroke
-        
-        local showFOV = false
-        if C.FOV then
-            if C.AShoot then
-                showFOV = true
-            elseif MyRole == "Murderer" or MyRole == "Sheriff" then
-                showFOV = true
-            else
-                local ch = LP.Character
-                if ch and ch:FindFirstChildOfClass("Tool") then
-                    showFOV = true
-                end
-            end
-        end
-        
-        if showFOV and fov then
-            fov.Visible = true
-            if fovS then
-                if MyRole == "Sheriff" then
-                    fovS.Color = Color3.fromRGB(0, 150, 255)
-                elseif MyRole == "Murderer" then
-                    fovS.Color = Color3.fromRGB(255, 50, 50)
-                else
-                    fovS.Color = Color3.fromRGB(255, 200, 50)
-                end
-            end
-        elseif fov then
-            fov.Visible = false
-        end
-        
         if C.AShoot then
             local m = FindM()
             if m and m.Character then
@@ -460,11 +404,13 @@ task.spawn(function()
                             Cam.CFrame = CFrame.new(Cam.CFrame.Position, th.Position)
                             pcall(function()
                                 for _, c in pairs(g:GetChildren()) do
-                                    if c:IsA("RemoteEvent") then 
-                                        c:FireServer(th.Position, th) 
-                                    end
+                                    if c:IsA("RemoteEvent") then c:FireServer(th.Position, th) end
                                 end
                                 g:Activate()
+                            end)
+                            pcall(function()
+                                VU:CaptureController()
+                                VU:ClickButton1(Vector2.new(0, 0))
                             end)
                         end
                     end
@@ -684,6 +630,7 @@ UIS.JumpRequest:Connect(function()
     end
 end)
 
+-- Fly (без застревания)
 local flyAttach, flyLV, flyAO, flyAlign
 local function StopFly()
     if flyLV then flyLV:Destroy(); flyLV = nil end
@@ -728,7 +675,10 @@ task.spawn(function()
 
         if C.Fly then
             local hum = ch:FindFirstChildOfClass("Humanoid")
-            if hum then hum.PlatformStand = true end
+            if hum then
+                hum.PlatformStand = false
+                pcall(function() hum:ChangeState(Enum.HumanoidStateType.Physics) end)
+            end
 
             StartFly(hrp)
 
@@ -748,8 +698,6 @@ task.spawn(function()
                 flyAlign.CFrame = cf
             end
         else
-            local hum = ch and ch:FindFirstChildOfClass("Humanoid")
-            if hum and hum.PlatformStand then hum.PlatformStand = false end
             StopFly()
         end
     end
