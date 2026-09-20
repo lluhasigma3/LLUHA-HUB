@@ -12,6 +12,7 @@ _G.LLUHA = _G.LLUHA or {}
 local C = _G.LLUHA.C or {
     ESP = true, ESPNames = true, ESPRoles = true, ESPHealth = true, ESPDist = false, ESPTracers = false,
     Farm = false, FarmSafe = false, SafeRange = 20, AutoCollect = false, CoinMagnet = false,
+    FarmSpeed = 1.5, AutoRespawn = false, FullBag = 50,
     Speed = false, SpeedVal = 22, DefSpeed = 16,
     Jump = false, JumpVal = 50, DefJump = 50,
     InfJ = false, Fly = false, FlySp = 60, NoClip = false, CTP = false,
@@ -19,7 +20,7 @@ local C = _G.LLUHA.C or {
     Invis = false, AFling = true, Fling = false, FlingR = 15, Freeze = false,
     Ghost = false, AntiAFK = true, Godmode = false,
     TPK = false, BJ = true, Fullbright = false, NoFog = false, FPSBoost = false,
-    FOV = true, FOVSize = 200,
+    FOV = true, FOVSize = 200, CustomSound = false, SoundVolume = 3,
 }
 _G.LLUHA.C = C
 
@@ -37,6 +38,7 @@ local SpawnPoint = nil
 
 _G.LLUHA.GetCache = function() return Cache end
 _G.LLUHA.GetMyRole = function() return MyRole end
+_G.LLUHA.RoundTime = 0
 
 local function Match(s)
     if not s then return nil end
@@ -124,9 +126,16 @@ LP.CharacterAdded:Connect(function()
     for k in pairs(Cache) do Cache[k] = nil end
     for k in pairs(WCache) do WCache[k] = nil end
     MyRole = "Innocent"
+    _G.LLUHA.RoundTime = 0
 end)
 
 LP:SetAttribute("LLUHA_User", true)
+
+task.spawn(function()
+    while task.wait(1) do
+        _G.LLUHA.RoundTime = _G.LLUHA.RoundTime + 1
+    end
+end)
 
 local ESPo = {}
 
@@ -295,7 +304,7 @@ local function FindSpawn()
 end
 
 task.spawn(function()
-    while task.wait(1.5) do
+    while task.wait(C.FarmSpeed) do
         if C.Farm then
             local ch = LP.Character
             local hum = ch and ch:FindFirstChildOfClass("Humanoid")
@@ -323,7 +332,28 @@ task.spawn(function()
                         task.wait(0.4)
                     end
                 end
-                task.wait(1.5)
+            end
+        end
+    end
+end)
+
+-- Авто-респавн
+task.spawn(function()
+    while task.wait(2) do
+        if C.AutoRespawn then
+            local ls = LP:FindFirstChild("leaderstats")
+            if ls then
+                for _, v in pairs(ls:GetChildren()) do
+                    if v:IsA("IntValue") or v:IsA("NumberValue") then
+                        local n = v.Name:lower()
+                        if n:find("coin") or n:find("bag") or n:find("сумк") then
+                            if v.Value >= C.FullBag then
+                                local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
+                                if hum then hum.Health = 0 end
+                            end
+                        end
+                    end
+                end
             end
         end
     end
@@ -383,19 +413,42 @@ if sg then
     _G.LLUHA.FOVStroke = fovStroke
 end
 
--- Aimbot V3 + Резолвер
+-- Aimbot V3 + FOV
 task.spawn(function()
     while task.wait(0.08) do
         local fov = _G.LLUHA.FOVCircle
         local fovS = _G.LLUHA.FOVStroke
-        if C.AShoot then
-            if fov then
-                fov.Visible = true
-                if fovS then
-                    fovS.Color = MyRole == "Sheriff" and Color3.fromRGB(0, 150, 255) or Color3.fromRGB(255, 50, 50)
+        
+        local showFOV = false
+        if C.FOV then
+            if C.AShoot then
+                showFOV = true
+            elseif MyRole == "Murderer" or MyRole == "Sheriff" then
+                showFOV = true
+            else
+                local ch = LP.Character
+                if ch and ch:FindFirstChildOfClass("Tool") then
+                    showFOV = true
                 end
             end
-            
+        end
+        
+        if showFOV and fov then
+            fov.Visible = true
+            if fovS then
+                if MyRole == "Sheriff" then
+                    fovS.Color = Color3.fromRGB(0, 150, 255)
+                elseif MyRole == "Murderer" then
+                    fovS.Color = Color3.fromRGB(255, 50, 50)
+                else
+                    fovS.Color = Color3.fromRGB(255, 200, 50)
+                end
+            end
+        elseif fov then
+            fov.Visible = false
+        end
+        
+        if C.AShoot then
             local m = FindM()
             if m and m.Character then
                 local mc = LP.Character
@@ -417,8 +470,6 @@ task.spawn(function()
                     end
                 end
             end
-        else
-            if fov then fov.Visible = false end
         end
     end
 end)
