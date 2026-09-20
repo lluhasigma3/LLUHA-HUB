@@ -11,7 +11,7 @@ local AdminMode = false
 local sg = Instance.new("ScreenGui")
 sg.Name = "LLUHA_HUB"
 sg.ResetOnSpawn = false
-sg.Parent = CoreGui
+sg.Parent = LP:WaitForChild("PlayerGui")
 _G.LLUHA.SG = sg
 
 local logoFrame = Instance.new("Frame")
