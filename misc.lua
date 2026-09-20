@@ -10,7 +10,6 @@ local Cam = workspace.CurrentCamera
 local C = _G.LLUHA.C
 local GetRole = _G.LLUHA.GetMyRole
 
--- Invisible
 task.spawn(function()
     while task.wait(0.5) do
         local ch = LP.Character
@@ -26,7 +25,6 @@ task.spawn(function()
     end
 end)
 
--- Ghost
 task.spawn(function()
     while task.wait(0.3) do
         if C.Ghost then
@@ -40,7 +38,6 @@ task.spawn(function()
     end
 end)
 
--- Godmode
 task.spawn(function()
     while task.wait(0.3) do
         if C.Godmode then
@@ -50,7 +47,6 @@ task.spawn(function()
     end
 end)
 
--- AntiFling
 task.spawn(function()
     while task.wait(0.3) do
         if not C.AFling then continue end
@@ -63,7 +59,6 @@ task.spawn(function()
     end
 end)
 
--- AntiAFK
 if C.AntiAFK then
     LP.Idled:Connect(function()
         VU:CaptureController()
@@ -71,33 +66,53 @@ if C.AntiAFK then
     end)
 end
 
--- Bomb Jump
 local function HB()
     local ch = LP.Character
-    if not ch then return false end
+    if not ch then return false, false end
     for _, t in pairs(ch:GetChildren()) do
         if t:IsA("Tool") then
             local n = t.Name:lower()
-            if n:find("bomb") or n:find("бомб") or n:find("prank") then return true end
+            if n:find("golden") or n:find("gold") or n:find("золот") then return true, true end
+            if n:find("bomb") or n:find("бомб") or n:find("prank") then return true, false end
         end
     end
-    return false
+    return false, false
 end
 
 UIS.JumpRequest:Connect(function()
-    if C.BJ and HB() then
-        local ch = LP.Character
-        if ch then
-            local hum = ch:FindFirstChildOfClass("Humanoid")
-            if hum and hum:GetState() == Enum.HumanoidStateType.Freefall then
-                local b = ch:FindFirstChildOfClass("Tool")
-                if b then b:Activate(); task.wait(0.05); hum:ChangeState(Enum.HumanoidStateType.Jumping) end
-            end
+    local hasBomb, isGolden = HB()
+    if not hasBomb then return end
+    local ch = LP.Character
+    if not ch then return end
+    local hum = ch:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    if hum:GetState() ~= Enum.HumanoidStateType.Freefall then return end
+    local b = ch:FindFirstChildOfClass("Tool")
+    if C.NormalJump and not isGolden then
+        if b then
+            pcall(function() b:Activate() end)
+            task.wait(0.05)
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+    if C.GoldenJump and isGolden then
+        if b then
+            pcall(function() b:Activate() end)
+            task.wait(0.05)
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+            task.wait(0.1)
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end
+    end
+    if C.BJ and not C.NormalJump and not C.GoldenJump then
+        if b then
+            b:Activate()
+            task.wait(0.05)
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
         end
     end
 end)
 
--- Infinite Jump
 UIS.JumpRequest:Connect(function()
     if C.InfJ then
         local hum = LP.Character and LP.Character:FindFirstChildOfClass("Humanoid")
@@ -105,7 +120,6 @@ UIS.JumpRequest:Connect(function()
     end
 end)
 
--- Fly (LinearVelocity)
 local flyAttach, flyLV, flyAO, flyAlign
 local function StopFly()
     if flyLV then flyLV:Destroy(); flyLV = nil end
@@ -118,14 +132,12 @@ local function StartFly(hrp)
     if flyLV then return end
     flyAttach = Instance.new("Attachment")
     flyAttach.Parent = hrp
-
     flyAlign = Instance.new("AlignOrientation")
     flyAlign.Mode = Enum.OrientationAlignmentMode.OneAttachment
     flyAlign.Attachment0 = flyAttach
     flyAlign.MaxTorque = 9e9
     flyAlign.Responsiveness = 200
     flyAlign.Parent = hrp
-
     flyLV = Instance.new("LinearVelocity")
     flyLV.Attachment0 = flyAttach
     flyLV.MaxForce = 9e9
@@ -133,7 +145,6 @@ local function StartFly(hrp)
     flyLV.PrimaryTangentAxis = Enum.Vector3.X
     flyLV.SecondaryTangentAxis = Enum.Vector3.Y
     flyLV.Parent = hrp
-
     flyAO = Instance.new("AlignOrientation")
     flyAO.Mode = Enum.OrientationAlignmentMode.OneAttachment
     flyAO.Attachment0 = flyAttach
@@ -147,7 +158,6 @@ task.spawn(function()
         local ch = LP.Character
         local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
         if not hrp then StopFly(); continue end
-
         if C.Fly then
             local hum = ch:FindFirstChildOfClass("Humanoid")
             if hum then
@@ -173,7 +183,6 @@ task.spawn(function()
     end
 end)
 
--- ClickTP
 local function DoTP(ray)
     local ch = LP.Character
     local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
@@ -197,7 +206,6 @@ UIS.InputBegan:Connect(function(i, g)
     end
 end)
 
--- NoClip
 RunService.Stepped:Connect(function()
     if C.NoClip then
         local ch = LP.Character
@@ -209,7 +217,6 @@ RunService.Stepped:Connect(function()
     end
 end)
 
--- Fullbright + NoFog
 task.spawn(function()
     while task.wait(0.5) do
         if C.Fullbright then
@@ -224,7 +231,6 @@ task.spawn(function()
     end
 end)
 
--- FPS Boost
 task.spawn(function()
     while task.wait(2) do
         if C.FPSBoost then
