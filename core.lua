@@ -21,6 +21,8 @@ local C = _G.LLUHA.C or {
     Ghost = false, AntiAFK = true, Godmode = false,
     TPK = false, BJ = true, Fullbright = false, NoFog = false, FPSBoost = false,
     FOV = true, FOVSize = 200, CustomSound = false, SoundVolume = 3,
+    AutoFling = false, AutoFlingRange = 20,
+    AutoKnife = false, AutoKnifeRange = 15,
 }
 _G.LLUHA.C = C
 
@@ -389,28 +391,116 @@ RunService.Heartbeat:Connect(function()
     elseif hum.JumpPower ~= C.DefJump then hum.JumpPower = C.DefJump end
 end)
 
--- Aimbot V3 + стрельба
+-- Aimbot V3 (Pulse-style)
+local aimbotTime = 0
 task.spawn(function()
-    while task.wait(0.08) do
+    while task.wait(0.02) do
         if C.AShoot then
             local m = FindM()
             if m and m.Character then
-                local mc = LP.Character
-                if mc then
-                    local g = mc:FindFirstChildOfClass("Tool")
-                    if g then
-                        local th = m.Character:FindFirstChild("HumanoidRootPart")
-                        if th then
-                            Cam.CFrame = CFrame.new(Cam.CFrame.Position, th.Position)
-                            pcall(function()
-                                for _, c in pairs(g:GetChildren()) do
-                                    if c:IsA("RemoteEvent") then c:FireServer(th.Position, th) end
+                local th = m.Character:FindFirstChild("HumanoidRootPart")
+                if th then
+                    local targetCF = CFrame.new(Cam.CFrame.Position, th.Position)
+                    Cam.CFrame = Cam.CFrame:Lerp(targetCF, 0.35)
+                    
+                    local screenPos, onScreen = Cam:WorldToViewportPoint(th.Position)
+                    local cx = Cam.ViewportSize.X / 2
+                    local cy = Cam.ViewportSize.Y / 2
+                    local dist = math.sqrt((screenPos.X - cx)^2 + (screenPos.Y - cy)^2)
+                    
+                    if dist <= (C.FOVSize or 200) / 2 and onScreen then
+                        aimbotTime = aimbotTime + 0.02
+                        if aimbotTime >= 0.05 then
+                            aimbotTime = 0
+                            local mc = LP.Character
+                            if mc then
+                                local g = mc:FindFirstChildOfClass("Tool")
+                                if g then
+                                    pcall(function()
+                                        for _, c in pairs(g:GetChildren()) do
+                                            if c:IsA("RemoteEvent") then c:FireServer(th.Position, th) end
+                                        end
+                                        g:Activate()
+                                    end)
+                                    pcall(function()
+                                        VU:CaptureController()
+                                        VU:ClickButton1(Vector2.new(0, 0))
+                                    end)
                                 end
-                                g:Activate()
-                            end)
+                            end
+                        end
+                    else
+                        aimbotTime = 0
+                    end
+                end
+            end
+        else
+            aimbotTime = 0
+        end
+    end
+end)
+
+-- Auto Knife (кидание ножа)
+task.spawn(function()
+    while task.wait(0.1) do
+        if C.AutoKnife and MyRole == "Murderer" then
+            local myCh = LP.Character
+            if myCh then
+                local knife = myCh:FindFirstChildOfClass("Tool")
+                if knife then
+                    for _, p in pairs(Players:GetPlayers()) do
+                        if p ~= LP and Cache[p] ~= "Murderer" and p.Character then
+                            local tHRP = p.Character:FindFirstChild("HumanoidRootPart")
+                            local myHRP = myCh:FindFirstChild("HumanoidRootPart")
+                            if tHRP and myHRP then
+                                local dist = (tHRP.Position - myHRP.Position).Magnitude
+                                if dist <= (C.AutoKnifeRange or 15) then
+                                    Cam.CFrame = CFrame.new(Cam.CFrame.Position, tHRP.Position)
+                                    pcall(function()
+                                        for _, c in pairs(knife:GetChildren()) do
+                                            if c:IsA("RemoteEvent") then
+                                                c:FireServer(tHRP.Position, tHRP)
+                                            end
+                                        end
+                                    end)
+                                    pcall(function() knife:Activate() end)
+                                    pcall(function()
+                                        VU:CaptureController()
+                                        VU:ClickButton1(Vector2.new(0, 0))
+                                    end)
+                                    task.wait(0.15)
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- Auto Fling
+task.spawn(function()
+    while task.wait(0.15) do
+        if C.AutoFling then
+            local myCh = LP.Character
+            local myHRP = myCh and myCh:FindFirstChild("HumanoidRootPart")
+            if myHRP then
+                for _, p in pairs(Players:GetPlayers()) do
+                    if p ~= LP and p.Character then
+                        local tHRP = p.Character:FindFirstChild("HumanoidRootPart")
+                        if tHRP and (tHRP.Position - myHRP.Position).Magnitude <= (C.AutoFlingRange or 20) then
                             pcall(function()
-                                VU:CaptureController()
-                                VU:ClickButton1(Vector2.new(0, 0))
+                                tHRP.Velocity = Vector3.new(
+                                    math.random(-1, 1) * 500,
+                                    math.random(200, 500),
+                                    math.random(-1, 1) * 500
+                                )
+                                tHRP.RotVelocity = Vector3.new(
+                                    math.random(-500, 500),
+                                    math.random(-500, 500),
+                                    math.random(-500, 500)
+                                )
                             end)
                         end
                     end
@@ -630,7 +720,6 @@ UIS.JumpRequest:Connect(function()
     end
 end)
 
--- Fly (без застревания)
 local flyAttach, flyLV, flyAO, flyAlign
 local function StopFly()
     if flyLV then flyLV:Destroy(); flyLV = nil end
@@ -740,16 +829,4 @@ end)
 task.spawn(function()
     while task.wait(0.5) do
         if C.Fullbright then
-            Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-            Lighting.Brightness = 3
-            Lighting.OutdoorAmbient = Color3.fromRGB(200, 200, 200)
-        end
-        if C.NoFog then
-            Lighting.FogEnd = 100000
-            Lighting.FogStart = 100000
-        end
-    end
-end)
-
-_G.LLUHA.Loaded = true
-print("[LLUHA HUB] Core loaded ✅")
+            Lighting.Ambient = Color3.fromRGB(255, 255, 255
