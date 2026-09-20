@@ -138,7 +138,7 @@ local function MkESP(p)
     h.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
     h.Parent = CoreGui
     local bb = Instance.new("BillboardGui")
-    bb.Size = UDim2.new(0, 220, 0, 60)
+    bb.Size = UDim2.new(0, 200, 0, 50)
     bb.StudsOffset = Vector3.new(0, 3, 0)
     bb.AlwaysOnTop = true
     bb.Parent = CoreGui
@@ -589,30 +589,55 @@ UIS.JumpRequest:Connect(function()
     end
 end)
 
-local flyG, flyV
+-- Fly (плавный, без лагов)
+local flyAttach, flyLV, flyAO, flyAlign
 local function StopFly()
-    if flyG then flyG:Destroy(); flyG = nil end
-    if flyV then flyV:Destroy(); flyV = nil end
+    if flyLV then flyLV:Destroy(); flyLV = nil end
+    if flyAO then flyAO:Destroy(); flyAO = nil end
+    if flyAttach then flyAttach:Destroy(); flyAttach = nil end
+    if flyAlign then flyAlign:Destroy(); flyAlign = nil end
+end
+
+local function StartFly(hrp)
+    if flyLV then return end
+    flyAttach = Instance.new("Attachment")
+    flyAttach.Parent = hrp
+
+    flyAlign = Instance.new("AlignOrientation")
+    flyAlign.Mode = Enum.OrientationAlignmentMode.OneAttachment
+    flyAlign.Attachment0 = flyAttach
+    flyAlign.MaxTorque = 9e9
+    flyAlign.Responsiveness = 200
+    flyAlign.Parent = hrp
+
+    flyLV = Instance.new("LinearVelocity")
+    flyLV.Attachment0 = flyAttach
+    flyLV.MaxForce = 9e9
+    flyLV.VelocityConstraintMode = Enum.VelocityConstraintMode.Vector
+    flyLV.PrimaryTangentAxis = Enum.Vector3.X
+    flyLV.SecondaryTangentAxis = Enum.Vector3.Y
+    flyLV.Parent = hrp
+
+    flyAO = Instance.new("AlignOrientation")
+    flyAO.Mode = Enum.OrientationAlignmentMode.OneAttachment
+    flyAO.Attachment0 = flyAttach
+    flyAO.MaxTorque = 9e9
+    flyAO.Responsiveness = 200
+    flyAO.Parent = hrp
 end
 
 task.spawn(function()
-    while task.wait(0.1) do
+    while task.wait(0.05) do
         local ch = LP.Character
         local hrp = ch and ch:FindFirstChild("HumanoidRootPart")
         if not hrp then StopFly(); continue end
+
         if C.Fly then
-            if not flyV then
-                flyV = Instance.new("BodyVelocity")
-                flyV.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-                flyV.Velocity = Vector3.zero
-                flyV.Parent = hrp
-            end
-            if not flyG then
-                flyG = Instance.new("BodyGyro")
-                flyG.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-                flyG.P = 1000
-                flyG.Parent = hrp
-            end
+            local hum = ch:FindFirstChildOfClass("Humanoid")
+            if hum then hum.PlatformStand = true end
+
+            StartFly(hrp)
+
             local md = Vector3.zero
             local cf = Cam.CFrame
             if UIS:IsKeyDown(Enum.KeyCode.W) then md = md + cf.LookVector end
@@ -621,9 +646,18 @@ task.spawn(function()
             if UIS:IsKeyDown(Enum.KeyCode.D) then md = md + cf.RightVector end
             if UIS:IsKeyDown(Enum.KeyCode.Space) then md = md + Vector3.new(0, 1, 0) end
             if UIS:IsKeyDown(Enum.KeyCode.LeftControl) then md = md - Vector3.new(0, 1, 0) end
-            flyV.Velocity = md.Magnitude > 0 and md.Unit * C.FlySp or Vector3.zero
-            flyG.CFrame = cf
-        else StopFly() end
+
+            if flyLV then
+                flyLV.VectorVelocity = md.Magnitude > 0 and md.Unit * C.FlySp or Vector3.zero
+            end
+            if flyAlign then
+                flyAlign.CFrame = cf
+            end
+        else
+            local hum = ch and ch:FindFirstChildOfClass("Humanoid")
+            if hum and hum.PlatformStand then hum.PlatformStand = false end
+            StopFly()
+        end
     end
 end)
 
